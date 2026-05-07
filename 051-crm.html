@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>051 CRM — Não Clientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --azul-escuro: #121628;
+  --azul-inst: #134169;
+  --azul-medio: #1c5b92;
+  --azul-claro: #2097d5;
+  --verde: #93c352;
+  --verde-agua: #169a9c;
+  --cinza-bg: #f0f2f4;
+  --cinza-medio: #b4bec9;
+  --branco: #ffffff;
+  --border: #e4e8ed;
+  --text-1: #121628;
+  --text-2: #4a5568;
+  --text-3: #8a96a8;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 32px rgba(18,22,40,0.12), 0 4px 8px rgba(0,0,0,0.06);
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--font);background:var(--cinza-bg);color:var(--text-1);min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--cinza-medio);border-radius:10px}
+
+/* ─── AUTH LOADING ─── */
+#auth-loading{position:fixed;inset:0;z-index:2000;background:var(--azul-escuro);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.al-brand{font-size:20px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;letter-spacing:-.4px}
+.al-dot{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.al-sub{font-size:12px;color:rgba(255,255,255,.45)}
+
+/* ─── LOGIN SCREEN ─── */
+#login-screen{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#0e1220 0%,#134169 60%,#1c5b92 100%)}
+.lg-card{background:var(--branco);border-radius:18px;padding:40px;width:100%;max-width:380px;box-shadow:0 32px 80px rgba(0,0,0,.4)}
+.lg-brand{text-align:center;margin-bottom:32px}
+.lg-logo{font-size:19px;font-weight:700;color:var(--azul-escuro);display:inline-flex;align-items:center;gap:8px;letter-spacing:-.4px}
+.lg-logo-dot{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.lg-sub{font-size:12px;color:var(--text-3);margin-top:6px}
+.lg-fields{display:flex;flex-direction:column;gap:14px}
+.lg-field{display:flex;flex-direction:column;gap:5px}
+.lg-btn{background:var(--azul-inst);color:#fff;border:none;border-radius:var(--r-sm);height:42px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;width:100%;transition:background .15s;margin-top:4px}
+.lg-btn:hover{background:var(--azul-medio)}
+.lg-btn:disabled{opacity:.6;cursor:not-allowed}
+.lg-footer{margin-top:20px;text-align:center;font-size:11.5px;color:var(--text-3)}
+
+/* ─── NAVBAR ─── */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:300;height:54px;background:var(--branco);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:6px;box-shadow:var(--shadow-xs)}
+.nb-brand{font-size:13.5px;font-weight:700;color:var(--azul-escuro);letter-spacing:-0.3px;display:flex;align-items:center;gap:7px;margin-right:28px;white-space:nowrap;flex-shrink:0}
+.nb-dot{width:7px;height:7px;border-radius:50%;background:var(--verde)}
+.nb-nav{display:flex;align-items:center;gap:3px;flex:1}
+.nb-link{padding:6px 14px;border-radius:var(--r-sm);font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer;transition:all .15s;white-space:nowrap;border:none;background:none;font-family:var(--font)}
+.nb-link:hover{color:var(--azul-medio);background:#f0f4f8}
+.nb-link.active{background:var(--azul-inst);color:#fff}
+.nb-right{font-size:11.5px;font-weight:500;color:var(--text-3);white-space:nowrap;flex-shrink:0}
+
+/* ─── LAYOUT ─── */
+.main{margin-top:54px;padding:32px 40px;max-width:1380px;margin-left:auto;margin-right:auto}
+
+/* ─── PAGE HEADER ─── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px;gap:16px;flex-wrap:wrap}
+.ph-title{font-size:21px;font-weight:700;color:var(--azul-escuro);letter-spacing:-.4px;line-height:1.2}
+.ph-sub{font-size:12.5px;color:var(--text-3);margin-top:3px;font-weight:400}
+.ph-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+
+/* ─── FILTER SELECT ─── */
+.fsel{height:33px;padding:0 28px 0 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--branco);font-family:var(--font);font-size:12.5px;color:var(--text-2);cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23b4bec9' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;transition:border-color .15s}
+.fsel:focus{border-color:var(--azul-claro);box-shadow:0 0 0 3px rgba(32,151,213,.08)}
+.fsel.active-filter{border-color:var(--azul-claro);color:var(--azul-medio);font-weight:500}
+
+/* ─── KPI GRID ─── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi{background:var(--branco);border-radius:var(--r-md);border:1px solid var(--border);padding:20px 22px;box-shadow:var(--shadow-sm);transition:box-shadow .15s}
+.kpi:hover{box-shadow:var(--shadow-md)}
+.kpi-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.kpi-icon.b{background:#eef6fc}
+.kpi-icon.g{background:#f0f9ec}
+.kpi-icon.t{background:#ebf7f7}
+.kpi-n{font-size:26px;font-weight:700;color:var(--azul-escuro);letter-spacing:-.7px;line-height:1;margin-bottom:4px}
+.kpi-l{font-size:11.5px;color:var(--text-3);font-weight:500}
+.kpi-trend{font-size:11px;color:var(--verde);font-weight:600;margin-top:7px;display:flex;align-items:center;gap:3px}
+
+/* ─── CHARTS ─── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.chart-card{background:var(--branco);border-radius:var(--r-md);border:1px solid var(--border);padding:20px 22px;box-shadow:var(--shadow-sm)}
+.chart-title{font-size:13px;font-weight:600;color:var(--azul-escuro);margin-bottom:2px}
+.chart-sub{font-size:11px;color:var(--text-3);margin-bottom:14px}
+.chart-wrap{position:relative;height:194px}
+
+/* ─── TABLE ─── */
+.tbl-card{background:var(--branco);border-radius:var(--r-md);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden}
+.tbl-head{padding:14px 22px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--azul-escuro)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 22px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);background:#fafbfc;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid #f4f5f8;transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#fafbfd}
+tbody td{padding:11px 22px;font-size:13px;color:var(--text-1)}
+.td-green{color:#4d8f1f;font-weight:600}
+.td-muted{color:var(--text-3)}
+
+/* ─── PROSPECT CARDS ─── */
+.pcard{background:var(--branco);border-radius:var(--r-md);border:1px solid var(--border);padding:15px 18px;box-shadow:var(--shadow-sm);margin-bottom:9px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s}
+.pcard:hover{box-shadow:var(--shadow-md);border-color:#cdd5de;transform:translateY(-1px)}
+.avatar{width:38px;height:38px;border-radius:50%;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pcard-info{flex:1;min-width:0}
+.pcard-name{font-size:14px;font-weight:600;color:var(--azul-escuro);margin-bottom:4px}
+.pcard-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.pcard-meta{font-size:11.5px;color:var(--text-3);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.pcard-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.pcard-arrow{color:var(--cinza-medio);flex-shrink:0}
+
+/* ─── BADGES ─── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;line-height:1.5}
+.bg-green{background:#f0f9ec;color:#4d8f1f;border:1px solid #c8e8a8}
+.bg-blue{background:#eef6fc;color:var(--azul-medio);border:1px solid #c0dff5}
+.bg-gray{background:#f3f4f7;color:var(--text-2);border:1px solid var(--border)}
+.bg-red{background:#fff0f0;color:#c93535;border:1px solid #fac8c8}
+.bg-teal{background:#ebf7f7;color:var(--verde-agua);border:1px solid #b4e2e3}
+.tag{padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:500;background:#f3f4f7;color:var(--text-2);border:1px solid var(--border)}
+
+/* ─── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 15px;border-radius:var(--r-sm);font-family:var(--font);font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;border:none;outline:none;line-height:1;white-space:nowrap}
+.btn-p{background:var(--azul-inst);color:#fff}
+.btn-p:hover{background:var(--azul-medio)}
+.btn-s{background:var(--branco);color:var(--text-2);border:1px solid var(--border)}
+.btn-s:hover{background:#f8f9fa;border-color:#cdd5de}
+.btn-g{background:transparent;color:var(--text-2);border:none;padding:5px 10px}
+.btn-g:hover{background:var(--cinza-bg)}
+.btn-sm{padding:4px 10px;font-size:11.5px}
+.btn-danger{background:#fff0f0;color:#c93535;border:1px solid #fac8c8}
+.btn-danger:hover{background:#fad5d5}
+.btn-export{background:#f0f9ec;color:#4d8f1f;border:1px solid #c8e8a8}
+.btn-export:hover{background:#d4edb8}
+
+/* ─── SEARCH BAR ─── */
+.sbar{display:flex;align-items:center;gap:8px;padding:12px 0 16px;flex-wrap:wrap}
+.sinput-wrap{position:relative;flex:1;min-width:240px}
+.sinput{width:100%;height:34px;padding:0 34px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--branco);font-family:var(--font);font-size:13px;color:var(--text-1);outline:none;transition:border-color .15s}
+.sinput:focus{border-color:var(--azul-claro);box-shadow:0 0 0 3px rgba(32,151,213,.08)}
+.sinput::placeholder{color:var(--text-3)}
+.sicon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--cinza-medio);pointer-events:none}
+
+/* ─── MODALS ─── */
+.moverlay{position:fixed;inset:0;z-index:400;background:rgba(18,22,40,.42);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.moverlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--branco);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);width:100%;transform:translateY(10px);transition:transform .2s;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+.moverlay.open .modal{transform:translateY(0)}
+.modal-sm{max-width:420px}
+.modal-md{max-width:560px}
+.modal-lg{max-width:740px}
+.modal-xl{max-width:880px}
+.mhead{padding:20px 26px 15px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.mtitle{font-size:15.5px;font-weight:700;color:var(--azul-escuro);letter-spacing:-.3px}
+.msub{font-size:11.5px;color:var(--text-3);margin-top:2px}
+.mclose{width:26px;height:26px;border-radius:5px;background:none;border:none;cursor:pointer;color:var(--cinza-medio);font-size:19px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;margin-left:10px}
+.mclose:hover{background:var(--cinza-bg);color:var(--text-1)}
+.mbody{padding:18px 26px;flex:1;overflow-y:auto}
+.mfoot{padding:14px 26px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:7px;flex-shrink:0}
+
+/* ─── TABS ─── */
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 26px;background:#fafbfc;flex-shrink:0}
+.tab{padding:10px 14px;font-size:12.5px;font-weight:500;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text-2)}
+.tab.active{color:var(--azul-inst);border-bottom-color:var(--azul-inst);font-weight:600}
+
+/* ─── FORMS ─── */
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg-grid{display:grid;gap:13px}
+.fg-2{grid-template-columns:1fr 1fr}
+.fg-3{grid-template-columns:1fr 1fr 1fr}
+.fg.s2{grid-column:span 2}
+.fg.s3{grid-column:span 3}
+.flabel{font-size:11.5px;font-weight:600;color:var(--text-2)}
+.req{color:#c93535}
+.finput,.fsel2,.ftarea{height:35px;padding:0 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--branco);font-family:var(--font);font-size:13px;color:var(--text-1);outline:none;transition:border-color .15s;width:100%}
+.finput:focus,.fsel2:focus,.ftarea:focus{border-color:var(--azul-claro);box-shadow:0 0 0 3px rgba(32,151,213,.08)}
+.finput::placeholder{color:var(--text-3)}
+.fsel2{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23b4bec9' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
+.ftarea{height:auto;min-height:68px;padding:8px 10px;resize:vertical;line-height:1.55}
+.finput[readonly]{background:#fafbfc;color:var(--text-2)}
+
+/* ─── TIMELINE ─── */
+.timeline{display:flex;flex-direction:column;gap:9px}
+.tl-item{background:#fafbfc;border:1px solid var(--border);border-radius:var(--r-md);padding:13px 15px;display:flex;gap:11px;align-items:flex-start}
+.tl-dot{width:7px;height:7px;border-radius:50%;background:var(--azul-claro);flex-shrink:0;margin-top:5px}
+.tl-title{font-size:13px;font-weight:600;color:var(--azul-escuro)}
+.tl-date{font-size:11px;color:var(--text-3);margin-top:2px}
+
+/* ─── CAPTACAO CARDS ─── */
+.cap-card{background:var(--branco);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:9px;box-shadow:var(--shadow-sm)}
+.cap-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:9px;gap:10px}
+.cap-ativo{font-size:13.5px;font-weight:600;color:var(--azul-escuro)}
+.cap-valor{font-size:17px;font-weight:700;color:var(--azul-inst);letter-spacing:-.3px;white-space:nowrap}
+.cap-meta{font-size:11.5px;color:var(--text-3);margin-top:3px}
+.cap-ns{background:#fff8f8;border:1px solid #f5c6c6;border-radius:var(--r-md);padding:13px 15px;margin-bottom:9px}
+
+/* ─── SECTION LABEL ─── */
+.sec-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);display:flex;align-items:center;gap:8px;padding:14px 0 8px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.sec-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+
+/* ─── EMPTY STATE ─── */
+.empty{text-align:center;padding:32px 16px;color:var(--text-3)}
+.empty svg{opacity:.35;margin-bottom:10px}
+.empty p{font-size:13px}
+
+/* ─── ALERT ─── */
+.alert{padding:10px 14px;border-radius:var(--r-sm);font-size:12.5px;margin-bottom:12px}
+.alert-warn{background:#fffbec;border:1px solid #f0dfa0;color:#7a6200}
+.alert-info{background:#eef6fc;border:1px solid #bcd8f0;color:var(--azul-medio)}
+.alert-ok{background:#f0f9ec;border:1px solid #c8e8a8;color:#3a7010}
+
+.divider{height:1px;background:var(--border);margin:14px 0}
+.radio-group{display:flex;gap:16px}
+.radio-label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;color:var(--text-2)}
+
+/* ─── DASH FILTER ─── */
+.filter-bar{display:flex;gap:8px;align-items:center}
+.filter-bar .fsel{background:var(--branco)}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.charts-grid{grid-template-columns:1fr}}
+@media(max-width:720px){.main{padding:20px 16px}.kpi-grid{grid-template-columns:1fr 1fr}.fg-2{grid-template-columns:1fr}.fg.s2{grid-column:span 1}.fg-3{grid-template-columns:1fr}.fg.s3{grid-column:span 1}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ AUTH LOADING ══════════════════════ -->
+<div id="auth-loading">
+  <div class="al-brand"><div class="al-dot"></div>051 Capital</div>
+  <div class="al-sub">Verificando acesso…</div>
+</div>
+
+<!-- ══════════════════════ LOGIN SCREEN ══════════════════════ -->
+<div id="login-screen">
+  <div class="lg-card">
+    <div class="lg-brand">
+      <div class="lg-logo"><div class="lg-logo-dot"></div>051 Capital</div>
+      <div class="lg-sub">CRM — Não Clientes</div>
+    </div>
+    <div id="lg-err"></div>
+    <div class="lg-fields">
+      <div class="lg-field">
+        <label class="flabel">E-mail</label>
+        <input id="lg-email" class="finput" type="email" placeholder="seu@051capital.com" onkeydown="if(event.key==='Enter')crm.login()">
+      </div>
+      <div class="lg-field">
+        <label class="flabel">Senha</label>
+        <input id="lg-pass" class="finput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')crm.login()">
+      </div>
+      <button id="lg-btn" class="lg-btn" onclick="crm.login()">Entrar</button>
+    </div>
+    <div class="lg-footer">Acesso restrito à equipe 051 Capital</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ CRM UI ══════════════════════ -->
+<div id="crm-ui" style="display:none">
+
+<!-- ─── NAVBAR ─── -->
+<nav class="navbar">
+  <div class="nb-brand"><span class="nb-dot"></span>051 CRM — Não Clientes</div>
+  <div class="nb-nav">
+    <button class="nb-link active" data-page="dashboard" onclick="crm.navigate('dashboard')">Dashboard</button>
+    <button class="nb-link" data-page="prospects" onclick="crm.navigate('prospects')">Não Clientes</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+    <span id="nb-user" class="nb-right" style="margin-right:2px"></span>
+    <button class="btn btn-s btn-sm" onclick="crm.openAddUser()">+ Equipe</button>
+    <button class="btn btn-g btn-sm" onclick="crm.logout()" style="color:var(--text-3)">Sair</button>
+  </div>
+</nav>
+
+<!-- ─── MAIN ─── -->
+<div class="main" id="main"></div>
+
+<!-- ═══ MODAL: NOVO PROSPECT ═══ -->
+<div class="moverlay" id="m-novo">
+  <div class="modal modal-md">
+    <div class="mhead">
+      <div><div class="mtitle">Cadastrar Novo Não Cliente</div></div>
+      <button class="mclose" onclick="crm.close('m-novo')">×</button>
+    </div>
+    <div class="mbody">
+      <div id="np-err"></div>
+      <div class="fg-grid fg-2">
+        <div class="fg s2">
+          <label class="flabel">Nome <span class="req">*</span></label>
+          <input id="np-nome" class="finput" placeholder="Nome completo" type="text">
+        </div>
+        <div class="fg">
+          <label class="flabel">E-mail</label>
+          <input id="np-email" class="finput" placeholder="email@exemplo.com" type="email">
+        </div>
+        <div class="fg">
+          <label class="flabel">Telefone</label>
+          <input id="np-tel" class="finput" placeholder="(11) 99999-9999" type="text">
+        </div>
+        <div class="fg">
+          <label class="flabel">Responsável <span class="req">*</span></label>
+          <select id="np-resp" class="fsel2">
+            <option value="">Selecionar…</option>
+            <option>Anderson</option><option>Murilo</option><option>Flávio</option><option>Luciano</option><option>Pedro</option>
+          </select>
+        </div>
+        <div class="fg s2">
+          <label class="flabel">Breve Resumo</label>
+          <textarea id="np-resumo" class="ftarea" placeholder="Breve descrição sobre o prospect…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="crm.close('m-novo')">Cancelar</button>
+      <button class="btn btn-p" onclick="crm.cadastrar()">Cadastrar Prospect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: DETALHE ═══ -->
+<div class="moverlay" id="m-detail">
+  <div class="modal modal-xl">
+    <div class="mhead" id="dh"></div>
+    <div class="tabs" id="dtabs"></div>
+    <div class="mbody" id="dbody"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: CAPTAÇÃO ═══ -->
+<div class="moverlay" id="m-cap">
+  <div class="modal modal-md">
+    <div class="mhead">
+      <div><div class="mtitle" id="cap-mtitle">Nova Captação</div></div>
+      <button class="mclose" onclick="crm.close('m-cap')">×</button>
+    </div>
+    <div class="mbody" id="cap-mbody"></div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="crm.close('m-cap')">Cancelar</button>
+      <button class="btn btn-p" onclick="crm.saveCap()">Salvar Captação</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: NÃO SEGUIU ═══ -->
+<div class="moverlay" id="m-ns">
+  <div class="modal modal-sm">
+    <div class="mhead">
+      <div><div class="mtitle">Captação Não Seguiu</div></div>
+      <button class="mclose" onclick="crm.close('m-ns')">×</button>
+    </div>
+    <div class="mbody">
+      <div class="fg-grid" style="gap:13px">
+        <div class="fg">
+          <label class="flabel">Ativo <span class="req">*</span></label>
+          <select id="ns-ativo" class="fsel2">
+            <option value="">Selecionar…</option>
+            <option>051 SS III</option><option>051 Coinvest II (RPV)</option><option>051 Coinvest III (Condomínios)</option><option>051 Starboard IV</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flabel">Justificativa <span class="req">*</span></label>
+          <textarea id="ns-just" class="ftarea" placeholder="Motivo pelo qual a captação não seguiu…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="crm.close('m-ns')">Cancelar</button>
+      <button class="btn btn-danger" onclick="crm.saveNS()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: RELATÓRIO ═══ -->
+<div class="moverlay" id="m-rel">
+  <div class="modal modal-sm">
+    <div class="mhead">
+      <div><div class="mtitle">Registrar Envio de Relatório</div></div>
+      <button class="mclose" onclick="crm.close('m-rel')">×</button>
+    </div>
+    <div class="mbody" id="rel-mbody"></div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="crm.close('m-rel')">Cancelar</button>
+      <button class="btn btn-p" onclick="crm.saveRel()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EDITAR PROSPECT ═══ -->
+<div class="moverlay" id="m-edit">
+  <div class="modal modal-md">
+    <div class="mhead">
+      <div><div class="mtitle">Editar Cadastro</div></div>
+      <button class="mclose" onclick="crm.close('m-edit')">×</button>
+    </div>
+    <div class="mbody">
+      <div class="fg-grid fg-2">
+        <div class="fg s2">
+          <label class="flabel">Nome <span class="req">*</span></label>
+          <input id="ed-nome" class="finput" type="text">
+        </div>
+        <div class="fg">
+          <label class="flabel">E-mail</label>
+          <input id="ed-email" class="finput" type="email">
+        </div>
+        <div class="fg">
+          <label class="flabel">Telefone</label>
+          <input id="ed-tel" class="finput" type="text">
+        </div>
+        <div class="fg">
+          <label class="flabel">Responsável <span class="req">*</span></label>
+          <select id="ed-resp" class="fsel2">
+            <option>Anderson</option><option>Murilo</option><option>Flávio</option><option>Luciano</option><option>Pedro</option>
+          </select>
+        </div>
+        <div class="fg s2">
+          <label class="flabel">Resumo</label>
+          <textarea id="ed-resumo" class="ftarea"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="crm.close('m-edit')">Cancelar</button>
+      <button class="btn btn-p" onclick="crm.saveEdit()">Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ENVIO POR ATIVO ═══ -->
+<div class="moverlay" id="m-bulk">
+  <div class="modal modal-md">
+    <div class="mhead">
+      <div><div class="mtitle">Envio de Relatório por Ativo</div><div class="msub">Registra envio para todos os prospects com apresentação do ativo selecionado</div></div>
+      <button class="mclose" onclick="crm.close('m-bulk')">×</button>
+    </div>
+    <div class="mbody">
+      <div class="fg-grid fg-2">
+        <div class="fg s2">
+          <label class="flabel">Tipo de Relatório <span class="req">*</span></label>
+          <select id="bk-tipo" class="fsel2" onchange="crm.onBkTipo()">
+            <option value="">Selecionar…</option>
+            <option>Posição Consolidada 051</option>
+            <option>Relatório de Ativo</option>
+          </select>
+        </div>
+        <div class="fg" id="bk-mes-fg" style="display:none">
+          <label class="flabel">Mês de Referência</label>
+          <select id="bk-mes" class="fsel2">
+            <option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+          </select>
+        </div>
+        <div class="fg" id="bk-ano-fg" style="display:none">
+          <label class="flabel">Ano de Referência</label>
+          <input id="bk-ano" class="finput" type="number" value="2025" min="2020" max="2035">
+        </div>
+        <div class="fg" id="bk-ativo-fg" style="display:none">
+          <label class="flabel">Ativo</label>
+          <select id="bk-ativo" class="fsel2" onchange="crm.onBkTipo()">
+            <option>051 SS III</option><option>051 Coinvest II (RPV)</option><option>051 Coinvest III (Condomínios)</option><option>051 Starboard IV</option>
+          </select>
+        </div>
+        <div class="fg" id="bk-tri-fg" style="display:none">
+          <label class="flabel">Trimestre</label>
+          <select id="bk-tri" class="fsel2"><option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option></select>
+        </div>
+        <div class="fg" id="bk-ano-tri-fg" style="display:none">
+          <label class="flabel">Ano</label>
+          <input id="bk-ano-tri" class="finput" type="number" value="2025" min="2020" max="2035">
+        </div>
+      </div>
+      <div id="bk-preview" style="margin-top:14px"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="crm.close('m-bulk')">Cancelar</button>
+      <button class="btn btn-p" onclick="crm.saveBulk()">Registrar Envio</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /crm-ui -->
+
+<!-- ═══ MODAL: ADICIONAR MEMBRO ═══ -->
+<div class="moverlay" id="m-adduser">
+  <div class="modal modal-sm">
+    <div class="mhead">
+      <div><div class="mtitle">Adicionar Membro à Equipe</div><div class="msub">Cria nova conta de acesso ao CRM</div></div>
+      <button class="mclose" onclick="crm.close('m-adduser')">×</button>
+    </div>
+    <div class="mbody">
+      <div id="au-err"></div>
+      <div class="fg-grid" style="gap:13px">
+        <div class="fg">
+          <label class="flabel">E-mail <span class="req">*</span></label>
+          <input id="au-email" class="finput" type="email" placeholder="nome@051capital.com">
+        </div>
+        <div class="fg">
+          <label class="flabel">Senha Inicial <span class="req">*</span></label>
+          <input id="au-pass" class="finput" type="password" placeholder="Mínimo 6 caracteres">
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="crm.close('m-adduser')">Cancelar</button>
+      <button class="btn btn-p" onclick="crm.addUser()">Criar Conta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// FIREBASE
+// ════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyB0v7gu1wo8RAlLa7ooZnLEkbT0yNdy9mA",
+  authDomain: "crm-c36cc.firebaseapp.com",
+  projectId: "crm-c36cc",
+  storageBucket: "crm-c36cc.firebasestorage.app",
+  messagingSenderId: "978235488147",
+  appId: "1:978235488147:web:50dfb778fd208543325a66"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════
+const RESPS = ['Anderson','Murilo','Flávio','Luciano','Pedro'];
+const ATIVOS = ['051 SS III','051 Coinvest II (RPV)','051 Coinvest III (Condomínios)','051 Starboard IV'];
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+const RESP_COLORS = {
+  'Anderson': '#134169',
+  'Murilo':   '#1c5b92',
+  'Flávio':   '#2097d5',
+  'Luciano':  '#169a9c',
+  'Pedro':    '#93c352'
+};
+
+// ════════════════════════════════════════════════════════
+// SEED DATA
+// ════════════════════════════════════════════════════════
+const SEED = [
+  {id:1,nome:'Ricardo Mendonça',email:'r.mendonca@rmendonca.com.br',tel:'(11) 98765-4321',resp:'Anderson',
+   resumo:'Empresário do setor imobiliário. Portfólio estimado em R$ 15MM. Alto potencial para fundos alternativos.',
+   dt:'2024-01-10',
+   ativos:[{ativo:'051 SS III',data:'2024-01-15'},{ativo:'051 Coinvest II (RPV)',data:'2024-02-20'}],
+   caps:[{id:101,ativo:'051 SS III',valor:500000,mec:'Conta BTG',seg:'Private',conta:'12345-6',abertura:true,status:'Aporte realizado',dataCap:'2024-03-01',resp:'Anderson'}],
+   ns:[],
+   rels:[{tipo:'Posição Consolidada 051',mes:'Março',ano:'2024',data:'2024-04-05'}]},
+  {id:2,nome:'Fernanda Castro',email:'fernanda@castroadvogados.com.br',tel:'(21) 97654-3210',resp:'Murilo',
+   resumo:'Sócia de escritório de advocacia. Interesse em diversificação patrimonial.',
+   dt:'2024-02-05',
+   ativos:[{ativo:'051 Starboard IV',data:'2024-02-10'}],
+   caps:[],
+   ns:[{ativo:'051 Starboard IV',just:'Horizonte de investimento incompatível no momento',data:'2024-03-15'}],
+   rels:[]},
+  {id:3,nome:'Eduardo Lima',email:'eduardo.lima@gmail.com',tel:'(11) 91234-5678',resp:'Flávio',
+   resumo:'Executivo de multinacional. Renda alta, perfil arrojado. Indicação de cliente atual.',
+   dt:'2024-02-20',
+   ativos:[{ativo:'051 SS III',data:'2024-02-25'},{ativo:'051 Coinvest III (Condomínios)',data:'2024-03-10'}],
+   caps:[{id:102,ativo:'051 Coinvest III (Condomínios)',valor:250000,mec:'Fundo Exclusivo',nomeFundo:'Lima FE',admin:'BTG Pactual',status:'Boletim assinado',dataCap:'2024-04-01',resp:'Flávio'}],
+   ns:[],
+   rels:[{tipo:'Relatório de Ativo',ativo:'051 Coinvest III (Condomínios)',tri:'Q1',anoTri:'2024',data:'2024-04-10'}]},
+  {id:4,nome:'Mariana Souza',email:'mariana.souza@msouza.com.br',tel:'(51) 98877-6655',resp:'Luciano',
+   resumo:'Herdeira de grupo familiar. Patrimônio em consolidação. Indicação de cliente atual.',
+   dt:'2024-03-15',ativos:[],caps:[],ns:[],rels:[]},
+  {id:5,nome:'Paulo Henrique Alves',email:'ph.alves@alvesinvest.com.br',tel:'(11) 99988-7766',resp:'Pedro',
+   resumo:'Gestor de patrimônio familiar. Interesse em fundos de crédito e coinvestimento.',
+   dt:'2024-03-28',
+   ativos:[{ativo:'051 Coinvest II (RPV)',data:'2024-04-02'},{ativo:'051 Coinvest III (Condomínios)',data:'2024-04-15'}],
+   caps:[{id:103,ativo:'051 Coinvest II (RPV)',valor:1000000,mec:'Conta BTG',seg:'Ultra High',conta:'98765-4',abertura:false,status:'Aporte realizado',dataCap:'2024-05-10',resp:'Pedro'}],
+   ns:[],rels:[]},
+  {id:6,nome:'Carla Rocha',email:'carla.rocha@email.com',tel:'(31) 98765-1234',resp:'Anderson',
+   resumo:'Médica especialista. Interesse em renda passiva e ativos alternativos de longo prazo.',
+   dt:'2024-04-10',
+   ativos:[{ativo:'051 SS III',data:'2024-04-15'}],
+   caps:[],ns:[],rels:[]},
+  {id:7,nome:'Thiago Barbosa',email:'t.barbosa@tbholding.com.br',tel:'(11) 97777-8888',resp:'Murilo',
+   resumo:'Sócio de holding familiar. Busca diversificação em ativos ilíquidos.',
+   dt:'2024-05-02',
+   ativos:[{ativo:'051 Starboard IV',data:'2024-05-08'},{ativo:'051 SS III',data:'2024-05-15'}],
+   caps:[{id:104,ativo:'051 Starboard IV',valor:750000,mec:'Conta BTG',seg:'Private',conta:'55443-2',abertura:true,status:'Boletim assinado',dataCap:'2024-06-01',resp:'Murilo'}],
+   ns:[],rels:[]}
+];
+
+// ════════════════════════════════════════════════════════
+// CRM CLASS
+// ════════════════════════════════════════════════════════
+class CRM051 {
+  constructor(){
+    this.page='dashboard';
+    this.data=[];
+    this.selId=null;
+    this.tab='cadastro';
+    this.editCapId=null;
+    this.charts={};
+    this.filters={resp:'all',ativo:'all',status:'all',q:''};
+    this.dashF={resp:'all',ativo:'all',status:'all'};
+    this._lastDashData=null;
+    this._unsub=null;
+    this._ready=false;
+  }
+
+  // ── AUTH ──────────────────────────────────────────────
+  start(user){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('crm-ui').style.display='block';
+    const name=user.email?user.email.split('@')[0]:'Usuário';
+    document.getElementById('nb-user').textContent=name;
+    this._startSync();
+  }
+
+  stop(){
+    if(this._unsub){this._unsub();this._unsub=null;}
+    this.data=[];
+    this._ready=false;
+    document.getElementById('crm-ui').style.display='none';
+    document.getElementById('login-screen').style.display='flex';
+    const btn=document.getElementById('lg-btn');
+    if(btn){btn.disabled=false;btn.textContent='Entrar';}
+    document.getElementById('lg-err').innerHTML='';
+  }
+
+  login(){
+    const email=document.getElementById('lg-email').value.trim();
+    const pass=document.getElementById('lg-pass').value;
+    const err=document.getElementById('lg-err');
+    const btn=document.getElementById('lg-btn');
+    err.innerHTML='';
+    if(!email||!pass){err.innerHTML='<div class="alert alert-warn">Preencha e-mail e senha.</div>';return;}
+    btn.disabled=true;btn.textContent='Entrando…';
+    auth.signInWithEmailAndPassword(email,pass).catch(e=>{
+      err.innerHTML=`<div class="alert alert-warn">${_fbErr(e.code)}</div>`;
+      btn.disabled=false;btn.textContent='Entrar';
+    });
+  }
+
+  logout(){
+    if(!confirm('Deseja sair da sua conta?'))return;
+    auth.signOut();
+  }
+
+  openAddUser(){
+    document.getElementById('au-err').innerHTML='';
+    document.getElementById('au-email').value='';
+    document.getElementById('au-pass').value='';
+    this.open('m-adduser');
+  }
+
+  addUser(){
+    const email=document.getElementById('au-email').value.trim();
+    const pass=document.getElementById('au-pass').value;
+    const err=document.getElementById('au-err');
+    err.innerHTML='';
+    if(!email||!pass){err.innerHTML='<div class="alert alert-warn">Preencha todos os campos.</div>';return;}
+    if(pass.length<6){err.innerHTML='<div class="alert alert-warn">A senha deve ter pelo menos 6 caracteres.</div>';return;}
+    // Secondary app instance so current user stays logged in
+    let sec;
+    try{sec=firebase.app('sec');}catch{sec=firebase.initializeApp(firebase.app().options,'sec');}
+    sec.auth().createUserWithEmailAndPassword(email,pass).then(()=>{
+      sec.auth().signOut();
+      document.getElementById('au-email').value='';
+      document.getElementById('au-pass').value='';
+      err.innerHTML=`<div class="alert alert-ok">Conta criada para <strong>${email}</strong>. Compartilhe a senha com o novo membro.</div>`;
+    }).catch(e=>{
+      err.innerHTML=`<div class="alert alert-warn">${_fbErr(e.code)}</div>`;
+    });
+  }
+
+  // ── FIRESTORE SYNC ────────────────────────────────────
+  _startSync(){
+    if(this._unsub)this._unsub();
+    this._unsub=db.collection('crm').doc('main').onSnapshot(snap=>{
+      if(snap.exists){
+        this.data=snap.data().prospects||[];
+        // If a selected prospect was deleted by another user, close modal
+        if(this.selId&&!this._get(this.selId)){
+          this.close('m-detail');
+          this.selId=null;
+        }
+        if(!this._ready){
+          this._ready=true;
+          this.navigate('dashboard');
+        } else {
+          this._render();
+        }
+      } else {
+        // First run: seed the data
+        db.collection('crm').doc('main').set({prospects:JSON.parse(JSON.stringify(SEED))});
+      }
+    },err=>console.error('Sync error:',err));
+  }
+
+  _save(){
+    db.collection('crm').doc('main').set({prospects:this.data}).catch(err=>console.error('Save error:',err));
+  }
+
+  _nid(){return this.data.length?Math.max(...this.data.map(p=>p.id))+1:1;}
+  _get(id){return this.data.find(p=>p.id===id);}
+  _tick(fn){setTimeout(fn,0);}
+
+  // ── DASHBOARD FILTERS ────────────────────────────────
+  _dashData(){
+    let r=[...this.data];
+    if(this.dashF.resp!=='all')r=r.filter(p=>p.resp===this.dashF.resp);
+    if(this.dashF.ativo!=='all')r=r.filter(p=>p.ativos&&p.ativos.some(a=>a.ativo===this.dashF.ativo));
+    if(this.dashF.status==='conv')r=r.filter(p=>p.caps&&p.caps.length>0);
+    else if(this.dashF.status==='nc')r=r.filter(p=>!p.caps||p.caps.length===0);
+    return r;
+  }
+
+  setDashF(k,v){
+    this.dashF[k]=v;
+    if(this.page==='dashboard'){
+      document.getElementById('main').innerHTML=this._renderDash();
+      this._tick(()=>this._initCharts());
+    }
+  }
+
+  clearDashF(){
+    this.dashF={resp:'all',ativo:'all',status:'all'};
+    document.getElementById('main').innerHTML=this._renderDash();
+    this._tick(()=>this._initCharts());
+  }
+
+  get _conv(){return this.data.filter(p=>p.caps&&p.caps.length>0);}
+
+  navigate(page){
+    this.page=page;
+    document.querySelectorAll('.nb-link').forEach(el=>{
+      el.classList.toggle('active',el.dataset.page===page);
+    });
+    this._render();
+  }
+
+  _render(){
+    const el=document.getElementById('main');
+    if(!el)return;
+    if(this.page==='dashboard'){
+      el.innerHTML=this._renderDash();
+      this._tick(()=>this._initCharts());
+    } else {
+      el.innerHTML=this._renderProspects();
+    }
+  }
+
+  // ── DASHBOARD ─────────────────────────────────────────
+  _renderDash(){
+    const d=this._dashData();
+    this._lastDashData=d;
+    const total=d.length;
+    const conv=d.filter(p=>p.caps&&p.caps.length>0).length;
+    const caps=d.reduce((s,p)=>s+(p.caps?p.caps.length:0),0);
+    const vol=d.reduce((s,p)=>s+(p.caps?p.caps.reduce((a,c)=>a+(c.valor||0),0):0),0);
+    const pct=total>0?((conv/total)*100).toFixed(1):0;
+
+    const byR={};
+    RESPS.forEach(r=>{byR[r]={t:0,c:0,v:0};});
+    d.forEach(p=>{
+      if(byR[p.resp]){
+        byR[p.resp].t++;
+        if(p.caps&&p.caps.length)byR[p.resp].c++;
+        byR[p.resp].v+=(p.caps||[]).reduce((s,c)=>s+(c.valor||0),0);
+      }
+    });
+
+    const hasFilter=this.dashF.resp!=='all'||this.dashF.ativo!=='all'||this.dashF.status!=='all';
+
+    return `
+<div class="ph">
+  <div>
+    <div class="ph-title">Dashboard</div>
+    <div class="ph-sub">Visão geral dos não clientes e captações${hasFilter?' <span style="color:var(--azul-claro);font-weight:500">— filtro ativo</span>':''}</div>
+  </div>
+  <div class="filter-bar">
+    <select class="fsel${this.dashF.resp!=='all'?' active-filter':''}" onchange="crm.setDashF('resp',this.value)">
+      <option value="all">Todos responsáveis</option>
+      ${RESPS.map(r=>`<option value="${r}"${this.dashF.resp===r?' selected':''}>${r}</option>`).join('')}
+    </select>
+    <select class="fsel${this.dashF.ativo!=='all'?' active-filter':''}" onchange="crm.setDashF('ativo',this.value)">
+      <option value="all">Todos ativos</option>
+      ${ATIVOS.map(a=>`<option value="${a}"${this.dashF.ativo===a?' selected':''}>${a}</option>`).join('')}
+    </select>
+    <select class="fsel${this.dashF.status!=='all'?' active-filter':''}" onchange="crm.setDashF('status',this.value)">
+      <option value="all">Todos</option>
+      <option value="conv"${this.dashF.status==='conv'?' selected':''}>Convertidos</option>
+      <option value="nc"${this.dashF.status==='nc'?' selected':''}>Não convertidos</option>
+    </select>
+    ${hasFilter?`<button class="btn btn-s btn-sm" onclick="crm.clearDashF()">✕ Limpar filtros</button>`:''}
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi">
+    <div class="kpi-icon b">${ico('users','#2097d5')}</div>
+    <div class="kpi-n">${total}</div>
+    <div class="kpi-l">Não Clientes Mapeados</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon g">${ico('check','#93c352')}</div>
+    <div class="kpi-n">${conv}</div>
+    <div class="kpi-l">Não Clientes Convertidos</div>
+    <div class="kpi-trend">↑ ${pct}% taxa de conversão</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon b">${ico('dollar','#2097d5')}</div>
+    <div class="kpi-n">${caps}</div>
+    <div class="kpi-l">Captações Registradas</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon t">${ico('briefcase','#169a9c')}</div>
+    <div class="kpi-n">${fmtK(vol)}</div>
+    <div class="kpi-l">Volume Total Captado</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-title">Não Clientes por Responsável</div>
+    <div class="chart-sub">Distribuição de prospects mapeados</div>
+    <div class="chart-wrap"><canvas id="ch1"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Ativos — Apresentações vs Captações</div>
+    <div class="chart-sub">Por ativo disponível</div>
+    <div class="chart-wrap"><canvas id="ch2"></canvas></div>
+  </div>
+</div>
+
+<div class="tbl-card">
+  <div class="tbl-head">Resumo por Responsável</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Responsável</th>
+        <th>Mapeados</th>
+        <th>Convertidos</th>
+        <th>Conv. %</th>
+        <th>Volume</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${RESPS.map(r=>{
+        const dd=byR[r];
+        const p=dd.t>0?((dd.c/dd.t)*100).toFixed(1):null;
+        const col=RESP_COLORS[r]||'#134169';
+        return `<tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="avatar" style="width:26px;height:26px;font-size:10.5px;font-weight:700;background:${col}">${r[0]}</div>
+              <span style="font-weight:500">${r}</span>
+            </div>
+          </td>
+          <td>${dd.t}</td>
+          <td>${dd.c}</td>
+          <td class="${dd.c>0?'td-green':'td-muted'}">${p?p+'%':'—'}</td>
+          <td style="font-weight:600">${dd.v>0?fmtK(dd.v):'—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</div>`;
+  }
+
+  _initCharts(){
+    Object.values(this.charts).forEach(c=>{try{c.destroy();}catch{}});
+    this.charts={};
+    const d=this._lastDashData||this.data;
+
+    const base={
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#121628',padding:10,titleFont:{size:11,family:'Inter'},bodyFont:{size:11,family:'Inter'},cornerRadius:6}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11,family:'Inter'},color:'#8a96a8'},border:{display:false}},
+        y:{grid:{color:'#f0f2f4',lineWidth:1},ticks:{font:{size:11,family:'Inter'},color:'#8a96a8'},border:{display:false}}
+      },
+      responsive:true,maintainAspectRatio:false
+    };
+
+    const c1=document.getElementById('ch1');
+    if(c1){
+      const vals=RESPS.map(r=>d.filter(p=>p.resp===r).length);
+      const colors=RESPS.map(r=>RESP_COLORS[r]||'#134169');
+      const hoverColors=RESPS.map(r=>this._darken(RESP_COLORS[r]||'#134169'));
+      this.charts.c1=new Chart(c1,{
+        type:'bar',
+        data:{labels:RESPS,datasets:[{data:vals,backgroundColor:colors,hoverBackgroundColor:hoverColors,borderRadius:5,borderSkipped:false}]},
+        options:{...base}
+      });
+    }
+
+    const c2=document.getElementById('ch2');
+    if(c2){
+      const short=ATIVOS.map(a=>a.replace('051 ','').replace(' (RPV)','').replace(' (Condomínios)',''));
+      const apres=ATIVOS.map(a=>d.filter(p=>p.ativos&&p.ativos.some(x=>x.ativo===a)).length);
+      const capsc=ATIVOS.map(a=>d.filter(p=>p.caps&&p.caps.some(c=>c.ativo===a)).length);
+      this.charts.c2=new Chart(c2,{
+        type:'bar',
+        data:{labels:short,datasets:[
+          {label:'Apresentações',data:apres,backgroundColor:'#2097d5',hoverBackgroundColor:'#1c5b92',borderRadius:4,borderSkipped:false},
+          {label:'Captações',data:capsc,backgroundColor:'#93c352',hoverBackgroundColor:'#6fa830',borderRadius:4,borderSkipped:false}
+        ]},
+        options:{...base,plugins:{...base.plugins,legend:{display:true,position:'bottom',labels:{font:{size:11,family:'Inter'},color:'#4a5568',usePointStyle:true,padding:14,pointStyleWidth:8}}}}
+      });
+    }
+  }
+
+  _darken(hex){
+    const n=parseInt(hex.slice(1),16);
+    const r=Math.max(0,((n>>16)&0xff)-20);
+    const g=Math.max(0,((n>>8)&0xff)-20);
+    const b=Math.max(0,(n&0xff)-20);
+    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  }
+
+  // ── PROSPECTS PAGE ────────────────────────────────────
+  _renderProspects(){
+    const total=this.data.length;
+    const conv=this._conv.length;
+    const filtered=this._filtered();
+    return `
+<div class="ph">
+  <div>
+    <div class="ph-title">Não Clientes</div>
+    <div class="ph-sub">${total} cadastrados &bull; ${conv} não clientes convertidos</div>
+  </div>
+  <div class="ph-actions">
+    <button class="btn btn-export" onclick="crm.exportExcel()">
+      ${ico('excel','#4d8f1f',13)} Exportar Excel
+    </button>
+    <button class="btn btn-s" onclick="crm.openBulk()">
+      ${ico('file','currentColor',13)} Envio de Relatório por Ativo
+    </button>
+    <button class="btn btn-p" onclick="crm.openNovo()">
+      ${ico('plus','currentColor',13)} Novo Cadastro
+    </button>
+  </div>
+</div>
+
+<div class="sbar">
+  <div class="sinput-wrap">
+    <span class="sicon">${ico('search','#b4bec9',13)}</span>
+    <input class="sinput" placeholder="Buscar por nome, e-mail ou telefone…" value="${esc(this.filters.q)}" oninput="crm.setF('q',this.value)">
+  </div>
+  <select class="fsel" onchange="crm.setF('resp',this.value)">
+    <option value="all">Todos responsáveis</option>
+    ${RESPS.map(r=>`<option value="${r}"${this.filters.resp===r?' selected':''}>${r}</option>`).join('')}
+  </select>
+  <select class="fsel" onchange="crm.setF('ativo',this.value)">
+    <option value="all">Todos ativos</option>
+    ${ATIVOS.map(a=>`<option value="${a}"${this.filters.ativo===a?' selected':''}>${a}</option>`).join('')}
+  </select>
+  <select class="fsel" onchange="crm.setF('status',this.value)">
+    <option value="all">Todos</option>
+    <option value="conv"${this.filters.status==='conv'?' selected':''}>Convertidos</option>
+    <option value="nc"${this.filters.status==='nc'?' selected':''}>Não convertidos</option>
+  </select>
+</div>
+
+<div id="plist">
+  ${filtered.length===0
+    ?`<div class="empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><p>Nenhum não cliente encontrado com os filtros aplicados.</p></div>`
+    :filtered.map(p=>this._pcard(p)).join('')}
+</div>`;
+  }
+
+  _filtered(){
+    let r=[...this.data];
+    if(this.filters.resp!=='all')r=r.filter(p=>p.resp===this.filters.resp);
+    if(this.filters.status==='conv')r=r.filter(p=>p.caps&&p.caps.length>0);
+    else if(this.filters.status==='nc')r=r.filter(p=>!p.caps||p.caps.length===0);
+    if(this.filters.ativo!=='all')r=r.filter(p=>p.ativos&&p.ativos.some(a=>a.ativo===this.filters.ativo));
+    if(this.filters.q){const q=this.filters.q.toLowerCase();r=r.filter(p=>p.nome.toLowerCase().includes(q)||(p.email||'').toLowerCase().includes(q)||(p.tel||'').includes(q));}
+    return r;
+  }
+
+  _pcard(p){
+    const conv=p.caps&&p.caps.length>0;
+    const col=RESP_COLORS[p.resp]||'#134169';
+    return `
+<div class="pcard" onclick="crm.openDetail(${p.id})">
+  <div class="avatar" style="background:${col}">${p.nome[0].toUpperCase()}</div>
+  <div class="pcard-info">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="pcard-name">${esc(p.nome)}</div>
+      <div class="pcard-badges">
+        ${conv?`<span class="badge bg-green">✓ Não Cliente Convertido</span>`:''}
+        ${p.caps&&p.caps.length?`<span class="badge bg-blue">${p.caps.length} captação(ões)</span>`:''}
+      </div>
+    </div>
+    <div class="pcard-meta">
+      <span>${ico('user','#b4bec9',11)} ${esc(p.resp)}</span>
+      ${p.email?`<span>${ico('mail','#b4bec9',11)} ${esc(p.email)}</span>`:''}
+      ${p.tel?`<span>${ico('phone','#b4bec9',11)} ${esc(p.tel)}</span>`:''}
+    </div>
+    ${p.ativos&&p.ativos.length?`<div class="pcard-tags">${p.ativos.map(a=>`<span class="tag">${esc(a.ativo)}</span>`).join('')}</div>`:''}
+  </div>
+  <div class="pcard-arrow">${ico('chevron','#b4bec9',15)}</div>
+</div>`;
+  }
+
+  setF(k,v){
+    this.filters[k]=v;
+    if(this.page==='prospects'){
+      const el=document.getElementById('plist');
+      if(!el)return;
+      const f=this._filtered();
+      el.innerHTML=f.length===0?`<div class="empty"><p>Nenhum não cliente encontrado.</p></div>`:f.map(p=>this._pcard(p)).join('');
+    }
+  }
+
+  // ── NEW PROSPECT ──────────────────────────────────────
+  openNovo(){
+    ['np-nome','np-email','np-tel','np-resumo'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('np-resp').value='';
+    document.getElementById('np-err').innerHTML='';
+    this.open('m-novo');
+  }
+
+  cadastrar(){
+    const nome=document.getElementById('np-nome').value.trim();
+    const email=document.getElementById('np-email').value.trim();
+    const tel=document.getElementById('np-tel').value.trim();
+    const resp=document.getElementById('np-resp').value;
+    const resumo=document.getElementById('np-resumo').value.trim();
+    const err=document.getElementById('np-err');
+    if(!nome){err.innerHTML='<div class="alert alert-warn">O nome é obrigatório.</div>';return;}
+    if(!resp){err.innerHTML='<div class="alert alert-warn">Selecione um responsável.</div>';return;}
+    const dup=this.data.find(p=>
+      p.nome.toLowerCase()===nome.toLowerCase()||
+      (email&&p.email&&p.email.toLowerCase()===email.toLowerCase())||
+      (tel&&p.tel&&p.tel===tel)
+    );
+    if(dup){err.innerHTML=`<div class="alert alert-warn">Esse prospect já foi cadastrado pelo Responsável <strong>${dup.resp}</strong>.</div>`;return;}
+    this.data.push({id:this._nid(),nome,email,tel,resp,resumo,dt:today(),ativos:[],caps:[],ns:[],rels:[]});
+    this._save();
+    this.close('m-novo');
+    this._render();
+  }
+
+  // ── DETAIL MODAL ──────────────────────────────────────
+  openDetail(id){
+    this.selId=id;
+    this.tab='cadastro';
+    this._buildDetail();
+    this.open('m-detail');
+  }
+
+  _buildDetail(){
+    const p=this._get(this.selId);
+    if(!p)return;
+    const conv=p.caps&&p.caps.length>0;
+    const col=RESP_COLORS[p.resp]||'#134169';
+    document.getElementById('dh').innerHTML=`
+      <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0">
+        <div class="avatar" style="width:46px;height:46px;font-size:17px;background:${col};flex-shrink:0">${p.nome[0].toUpperCase()}</div>
+        <div style="min-width:0">
+          <div class="mtitle" style="font-size:16px">${esc(p.nome)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
+            <span style="font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:3px">${ico('user','#b4bec9',11)} ${esc(p.resp)}</span>
+            ${conv?`<span class="badge bg-green">✓ Não Cliente Convertido</span>`:`<span class="badge bg-gray">Não convertido</span>`}
+          </div>
+        </div>
+      </div>
+      <button class="mclose" onclick="crm.close('m-detail')">×</button>`;
+    const TABS=[{k:'cadastro',l:'Cadastro'},{k:'ativos',l:'Ativos Apresentados'},{k:'captacao',l:'Registrar Captação'},{k:'relatorios',l:'Relatórios'}];
+    document.getElementById('dtabs').innerHTML=TABS.map(t=>`<div class="tab${this.tab===t.k?' active':''}" onclick="crm.switchTab('${t.k}')">${t.l}</div>`).join('');
+    this._renderTab();
+  }
+
+  switchTab(t){
+    this.tab=t;
+    document.querySelectorAll('#dtabs .tab').forEach((el,i)=>{
+      const keys=['cadastro','ativos','captacao','relatorios'];
+      el.classList.toggle('active',keys[i]===t);
+    });
+    this._renderTab();
+  }
+
+  _renderTab(){
+    const p=this._get(this.selId);
+    const body=document.getElementById('dbody');
+    if(!p||!body)return;
+    if(this.tab==='cadastro')body.innerHTML=this._tabCad(p);
+    else if(this.tab==='ativos')body.innerHTML=this._tabAtivos(p);
+    else if(this.tab==='captacao')body.innerHTML=this._tabCap(p);
+    else body.innerHTML=this._tabRel(p);
+  }
+
+  _tabCad(p){
+    return `
+<div class="fg-grid fg-2" style="gap:18px">
+  <div class="fg"><div class="flabel">Nome</div><div style="font-size:14px;font-weight:600;color:var(--azul-escuro);margin-top:3px">${esc(p.nome)}</div></div>
+  <div class="fg"><div class="flabel">Responsável</div><div style="font-size:13px;margin-top:3px;font-weight:500">${esc(p.resp)}</div></div>
+  <div class="fg"><div class="flabel">E-mail</div><div style="font-size:13px;margin-top:3px">${p.email?esc(p.email):'<span style="color:var(--text-3)">—</span>'}</div></div>
+  <div class="fg"><div class="flabel">Telefone</div><div style="font-size:13px;margin-top:3px">${p.tel?esc(p.tel):'<span style="color:var(--text-3)">—</span>'}</div></div>
+  <div class="fg"><div class="flabel">Data de Cadastro</div><div style="font-size:13px;margin-top:3px">${fmtDate(p.dt)}</div></div>
+  ${p.resumo?`<div class="fg s2"><div class="flabel">Resumo</div><div style="font-size:13px;margin-top:3px;line-height:1.6;color:var(--text-2)">${esc(p.resumo)}</div></div>`:''}
+</div>
+<div class="divider"></div>
+<div style="display:flex;justify-content:flex-end">
+  <button class="btn btn-s btn-sm" onclick="crm.openEdit(${p.id})">Editar Cadastro</button>
+</div>`;
+  }
+
+  _tabAtivos(p){
+    return `
+<div class="sec-row">
+  <div class="sec-label" style="padding:0;flex:1">Ativos Apresentados</div>
+  <button class="btn btn-p btn-sm" style="margin-left:14px" onclick="crm.showAtivoForm()">+ Registrar Apresentação</button>
+</div>
+${p.ativos&&p.ativos.length?`
+<div class="timeline">
+  ${p.ativos.map((a,i)=>`
+  <div class="tl-item">
+    <div class="tl-dot"></div>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="tl-title">${esc(a.ativo)}</div>
+          <div class="tl-date">Apresentado em ${fmtDate(a.data)}</div>
+        </div>
+        <button class="btn btn-g btn-sm" style="color:#c93535" onclick="crm.rmAtivo(${p.id},${i})">✕ Remover</button>
+      </div>
+    </div>
+  </div>`).join('')}
+</div>`:`<div class="empty"><p>Nenhum ativo apresentado ainda.</p></div>`}
+<div id="atv-form" style="display:none;margin-top:14px;padding:14px 16px;background:#fafbfc;border:1px solid var(--border);border-radius:var(--r-md)">
+  <div style="font-size:13px;font-weight:600;margin-bottom:11px;color:var(--azul-escuro)">Registrar Apresentação</div>
+  <div class="fg-grid fg-2">
+    <div class="fg">
+      <label class="flabel">Ativo <span class="req">*</span></label>
+      <select id="atv-ativo" class="fsel2"><option value="">Selecionar…</option>${ATIVOS.map(a=>`<option>${a}</option>`).join('')}</select>
+    </div>
+    <div class="fg">
+      <label class="flabel">Data da Apresentação</label>
+      <input id="atv-data" class="finput" type="date" value="${today()}">
+    </div>
+  </div>
+  <div style="display:flex;gap:7px;margin-top:11px">
+    <button class="btn btn-s btn-sm" onclick="document.getElementById('atv-form').style.display='none'">Cancelar</button>
+    <button class="btn btn-p btn-sm" onclick="crm.saveAtivo(${p.id})">Registrar</button>
+  </div>
+</div>`;
+  }
+
+  _tabCap(p){
+    const caps=p.caps||[];
+    const ns=p.ns||[];
+    return `
+<div class="sec-row">
+  <div class="sec-label" style="padding:0;flex:1">CAPTAÇÕES</div>
+  <button class="btn btn-p btn-sm" style="margin-left:14px" onclick="crm.openCap(${p.id},null)">+ Nova Captação</button>
+</div>
+${caps.length?caps.map(c=>`
+<div class="cap-card">
+  <div class="cap-head">
+    <div>
+      <div class="cap-ativo">${esc(c.ativo)}</div>
+      <div class="cap-meta">${c.mec==='Fundo Exclusivo'?`Fundo Exclusivo — ${esc(c.nomeFundo||'—')} · ${esc(c.admin||'—')}`:`Conta BTG · ${esc(c.seg||'—')} · ${esc(c.conta||'—')}`}</div>
+      <div class="cap-meta">Data: ${fmtDate(c.dataCap)}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div class="cap-valor">${fmtBRL(c.valor)}</div>
+      <div style="margin-top:5px"><span class="badge ${c.status==='Aporte realizado'?'bg-green':'bg-blue'}">${esc(c.status)}</span></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px">
+    <button class="btn btn-s btn-sm" onclick="crm.openCap(${p.id},${c.id})">Editar</button>
+  </div>
+</div>`).join(''):`<div class="empty" style="padding:18px"><p>Nenhuma captação registrada.</p></div>`}
+
+<div style="margin-top:20px">
+  <div class="sec-row">
+    <div class="sec-label" style="padding:0;flex:1">CAPTAÇÕES QUE NÃO SEGUIRAM</div>
+    <button class="btn btn-danger btn-sm" style="margin-left:14px" onclick="crm.openNS(${p.id})">Captação Não Seguiu</button>
+  </div>
+  ${ns.length?ns.map((n,i)=>`
+  <div class="cap-ns">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#c93535">${esc(n.ativo)}</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.5">Justificativa: ${esc(n.just)}</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:3px">${fmtDate(n.data)}</div>
+      </div>
+      <button class="btn btn-g btn-sm" style="color:#c93535" onclick="crm.rmNS(${p.id},${i})">✕</button>
+    </div>
+  </div>`).join(''):`<div class="empty" style="padding:14px"><p>Nenhum registro.</p></div>`}
+</div>`;
+  }
+
+  _tabRel(p){
+    const rels=p.rels||[];
+    return `
+<div class="sec-row">
+  <div class="sec-label" style="padding:0;flex:1">Histórico de Relatórios</div>
+  <button class="btn btn-p btn-sm" style="margin-left:14px" onclick="crm.openRel(${p.id})">+ Registrar Envio</button>
+</div>
+${rels.length?`<div class="timeline">${rels.map((r,i)=>`
+<div class="tl-item">
+  <div class="tl-dot" style="background:var(--verde-agua)"></div>
+  <div style="flex:1">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div class="tl-title">${esc(r.tipo)}</div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:2px">
+          ${r.tipo==='Posição Consolidada 051'
+            ?`${esc(r.mes||'')} / ${esc(r.ano||'')}`
+            :`${esc(r.ativo||'')} — ${esc(r.tri||'')}${r.anoTri?' / '+esc(r.anoTri):''}`}
+        </div>
+        <div class="tl-date">Enviado em ${fmtDate(r.data)}</div>
+      </div>
+      <button class="btn btn-g btn-sm" style="color:#c93535" onclick="crm.rmRel(${p.id},${i})">✕</button>
+    </div>
+  </div>
+</div>`).join('')}</div>`:`<div class="empty" style="padding:24px"><p>Nenhum relatório registrado.</p></div>`}`;
+  }
+
+  // ── ATIVO FORM ────────────────────────────────────────
+  showAtivoForm(){const f=document.getElementById('atv-form');if(f)f.style.display='block';}
+  saveAtivo(id){
+    const ativo=document.getElementById('atv-ativo').value;
+    const data=document.getElementById('atv-data').value;
+    if(!ativo)return;
+    const p=this._get(id);
+    p.ativos.push({ativo,data:data||today()});
+    this._save();this._renderTab();
+  }
+  rmAtivo(id,i){this._get(id).ativos.splice(i,1);this._save();this._renderTab();}
+
+  // ── CAPTAÇÃO MODAL ────────────────────────────────────
+  openCap(pid,cid){
+    this.selId=pid;
+    this.editCapId=cid;
+    const p=this._get(pid);
+    const c=cid?p.caps.find(x=>x.id===cid):null;
+    document.getElementById('cap-mtitle').textContent=cid?'Editar Captação':'Nova Captação';
+    document.getElementById('cap-mbody').innerHTML=this._capForm(p,c);
+    this._bindMec();
+    this.open('m-cap');
+  }
+
+  _capForm(p,c){
+    const mec=c?c.mec:'Conta BTG';
+    return `
+<div class="fg-grid fg-2">
+  <div class="fg s2">
+    <label class="flabel">Nome do Cliente</label>
+    <input class="finput" value="${esc(p.nome)}" readonly>
+  </div>
+  <div class="fg">
+    <label class="flabel">Responsável</label>
+    <select id="cap-resp" class="fsel2">${RESPS.map(r=>`<option${(c?c.resp===r:p.resp===r)?' selected':''}>${r}</option>`).join('')}</select>
+  </div>
+  <div class="fg">
+    <label class="flabel">Data de Captação <span class="req">*</span></label>
+    <input id="cap-dt" class="finput" type="date" value="${c?c.dataCap:today()}">
+  </div>
+  <div class="fg">
+    <label class="flabel">Ativo Captado</label>
+    <select id="cap-ativo" class="fsel2">${ATIVOS.map(a=>`<option${c&&c.ativo===a?' selected':''}>${a}</option>`).join('')}</select>
+  </div>
+  <div class="fg">
+    <label class="flabel">Valor Comprometido</label>
+    <input id="cap-valor" class="finput" placeholder="R$ 0,00" value="${c?fmtBRL(c.valor):''}">
+  </div>
+  <div class="fg s2">
+    <label class="flabel">Mecanismo de Aporte</label>
+    <div class="radio-group">
+      <label class="radio-label"><input type="radio" name="cmec" value="Conta BTG" id="mec-btg"${mec==='Conta BTG'?' checked':''}> Conta BTG</label>
+      <label class="radio-label"><input type="radio" name="cmec" value="Fundo Exclusivo" id="mec-fe"${mec==='Fundo Exclusivo'?' checked':''}> Fundo Exclusivo</label>
+    </div>
+  </div>
+  <div id="btg-f" class="fg s2" style="display:${mec==='Conta BTG'?'block':'none'}">
+    <div class="fg-grid fg-2">
+      <div class="fg"><label class="flabel">Segmento</label><input id="cap-seg" class="finput" placeholder="Private, Ultra High…" value="${c&&c.seg?esc(c.seg):''}"></div>
+      <div class="fg"><label class="flabel">Número da Conta</label><input id="cap-conta" class="finput" value="${c&&c.conta?esc(c.conta):''}"></div>
+      <div class="fg s2">
+        <label class="flabel">Abertura da conta foi solicitada por nós?</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="cab" value="sim"${(!c||c.abertura===true)?' checked':''}> Sim</label>
+          <label class="radio-label"><input type="radio" name="cab" value="nao"${(c&&c.abertura===false)?' checked':''}> Não</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="fe-f" class="fg s2" style="display:${mec==='Fundo Exclusivo'?'block':'none'}">
+    <div class="fg-grid fg-2">
+      <div class="fg"><label class="flabel">Nome do Fundo</label><input id="cap-fnome" class="finput" value="${c&&c.nomeFundo?esc(c.nomeFundo):''}"></div>
+      <div class="fg"><label class="flabel">Administrador</label><input id="cap-admin" class="finput" value="${c&&c.admin?esc(c.admin):''}"></div>
+    </div>
+  </div>
+  <div class="fg">
+    <label class="flabel">Status</label>
+    <select id="cap-status" class="fsel2">
+      <option${(!c||c.status==='Boletim assinado')?' selected':''}>Boletim assinado</option>
+      <option${c&&c.status==='Aporte realizado'?' selected':''}>Aporte realizado</option>
+    </select>
+  </div>
+</div>`;
+  }
+
+  _bindMec(){
+    this._tick(()=>{
+      const btg=document.getElementById('mec-btg');
+      const fe=document.getElementById('mec-fe');
+      if(!btg)return;
+      const tog=()=>{
+        document.getElementById('btg-f').style.display=btg.checked?'block':'none';
+        document.getElementById('fe-f').style.display=fe.checked?'block':'none';
+      };
+      btg.addEventListener('change',tog);
+      fe.addEventListener('change',tog);
+    });
+  }
+
+  saveCap(){
+    const p=this._get(this.selId);
+    const dt=document.getElementById('cap-dt').value;
+    if(!dt){alert('Data de captação é obrigatória.');return;}
+    const mec=document.querySelector('input[name="cmec"]:checked')?.value||'Conta BTG';
+    const valorStr=document.getElementById('cap-valor').value.replace(/[R$\s.]/g,'').replace(',','.');
+    const valor=parseFloat(valorStr)||0;
+    const cap={
+      id:this.editCapId||(Date.now()),
+      ativo:document.getElementById('cap-ativo').value,
+      valor,mec,dataCap:dt,
+      resp:document.getElementById('cap-resp').value,
+      status:document.getElementById('cap-status').value
+    };
+    if(mec==='Conta BTG'){
+      cap.seg=document.getElementById('cap-seg').value;
+      cap.conta=document.getElementById('cap-conta').value;
+      cap.abertura=document.querySelector('input[name="cab"]:checked')?.value==='sim';
+    } else {
+      cap.nomeFundo=document.getElementById('cap-fnome').value;
+      cap.admin=document.getElementById('cap-admin').value;
+    }
+    if(this.editCapId){
+      const idx=p.caps.findIndex(c=>c.id===this.editCapId);
+      if(idx!==-1)p.caps[idx]=cap;
+    } else {
+      p.caps.push(cap);
+    }
+    this._save();this.close('m-cap');this._renderTab();
+  }
+
+  // ── NÃO SEGUIU ────────────────────────────────────────
+  openNS(id){
+    this.selId=id;
+    document.getElementById('ns-ativo').value='';
+    document.getElementById('ns-just').value='';
+    this.open('m-ns');
+  }
+  saveNS(){
+    const ativo=document.getElementById('ns-ativo').value;
+    const just=document.getElementById('ns-just').value.trim();
+    if(!ativo||!just){alert('Preencha todos os campos.');return;}
+    this._get(this.selId).ns.push({ativo,just,data:today()});
+    this._save();this.close('m-ns');this._renderTab();
+  }
+  rmNS(id,i){this._get(id).ns.splice(i,1);this._save();this._renderTab();}
+
+  // ── RELATÓRIO ─────────────────────────────────────────
+  openRel(id){
+    this.selId=id;
+    const ano=new Date().getFullYear();
+    document.getElementById('rel-mbody').innerHTML=`
+<div class="fg-grid" style="gap:13px">
+  <div class="fg">
+    <label class="flabel">Tipo <span class="req">*</span></label>
+    <select id="rel-tipo" class="fsel2" onchange="crm._relTipo()">
+      <option value="">Selecionar…</option>
+      <option>Posição Consolidada 051</option>
+      <option>Relatório de Ativo</option>
+    </select>
+  </div>
+  <div id="rel-pc-f" style="display:none">
+    <div class="fg-grid fg-2">
+      <div class="fg"><label class="flabel">Mês de Referência</label>
+        <select id="rel-mes" class="fsel2">${MESES.map(m=>`<option>${m}</option>`).join('')}</select></div>
+      <div class="fg"><label class="flabel">Ano de Referência</label>
+        <input id="rel-ano" class="finput" type="number" value="${ano}" min="2020" max="2035"></div>
+    </div>
+  </div>
+  <div id="rel-at-f" style="display:none">
+    <div class="fg-grid fg-3">
+      <div class="fg"><label class="flabel">Ativo</label>
+        <select id="rel-ativo" class="fsel2">${ATIVOS.map(a=>`<option>${a}</option>`).join('')}</select></div>
+      <div class="fg"><label class="flabel">Trimestre</label>
+        <select id="rel-tri" class="fsel2"><option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option></select></div>
+      <div class="fg"><label class="flabel">Ano</label>
+        <input id="rel-ano-tri" class="finput" type="number" value="${ano}" min="2020" max="2035"></div>
+    </div>
+  </div>
+</div>`;
+    this.open('m-rel');
+  }
+
+  _relTipo(){
+    const t=document.getElementById('rel-tipo').value;
+    document.getElementById('rel-pc-f').style.display=t==='Posição Consolidada 051'?'block':'none';
+    document.getElementById('rel-at-f').style.display=t==='Relatório de Ativo'?'block':'none';
+  }
+
+  saveRel(){
+    const tipo=document.getElementById('rel-tipo').value;
+    if(!tipo){alert('Selecione o tipo.');return;}
+    const r={tipo,data:today()};
+    if(tipo==='Posição Consolidada 051'){
+      r.mes=document.getElementById('rel-mes').value;
+      r.ano=document.getElementById('rel-ano').value;
+    } else {
+      r.ativo=document.getElementById('rel-ativo').value;
+      r.tri=document.getElementById('rel-tri').value;
+      r.anoTri=document.getElementById('rel-ano-tri').value;
+    }
+    this._get(this.selId).rels.push(r);
+    this._save();this.close('m-rel');this._renderTab();
+  }
+  rmRel(id,i){this._get(id).rels.splice(i,1);this._save();this._renderTab();}
+
+  // ── EDIT PROSPECT ─────────────────────────────────────
+  openEdit(id){
+    this.selId=id;
+    const p=this._get(id);
+    document.getElementById('ed-nome').value=p.nome;
+    document.getElementById('ed-email').value=p.email||'';
+    document.getElementById('ed-tel').value=p.tel||'';
+    document.getElementById('ed-resp').value=p.resp;
+    document.getElementById('ed-resumo').value=p.resumo||'';
+    this.open('m-edit');
+  }
+  saveEdit(){
+    const nome=document.getElementById('ed-nome').value.trim();
+    const resp=document.getElementById('ed-resp').value;
+    if(!nome||!resp){alert('Nome e responsável são obrigatórios.');return;}
+    const p=this._get(this.selId);
+    p.nome=nome;p.email=document.getElementById('ed-email').value.trim();
+    p.tel=document.getElementById('ed-tel').value.trim();
+    p.resp=resp;p.resumo=document.getElementById('ed-resumo').value.trim();
+    this._save();this.close('m-edit');this._buildDetail();
+  }
+
+  // ── BULK RELATORIO ────────────────────────────────────
+  openBulk(){
+    document.getElementById('bk-tipo').value='';
+    ['bk-ativo-fg','bk-tri-fg','bk-ano-tri-fg','bk-mes-fg','bk-ano-fg'].forEach(id=>document.getElementById(id).style.display='none');
+    document.getElementById('bk-preview').innerHTML='';
+    this.open('m-bulk');
+  }
+
+  onBkTipo(){
+    const t=document.getElementById('bk-tipo').value;
+    const isAt=t==='Relatório de Ativo';
+    const isPc=t==='Posição Consolidada 051';
+    document.getElementById('bk-ativo-fg').style.display=isAt?'block':'none';
+    document.getElementById('bk-tri-fg').style.display=isAt?'block':'none';
+    document.getElementById('bk-ano-tri-fg').style.display=isAt?'block':'none';
+    document.getElementById('bk-mes-fg').style.display=isPc?'block':'none';
+    document.getElementById('bk-ano-fg').style.display=isPc?'block':'none';
+    if(isAt){
+      const ativo=document.getElementById('bk-ativo').value;
+      const targets=this.data.filter(p=>p.ativos&&p.ativos.some(a=>a.ativo===ativo));
+      document.getElementById('bk-preview').innerHTML=targets.length
+        ?`<div class="alert alert-info">Serão registrados envios para <strong>${targets.length} prospect(s)</strong> com apresentação de <strong>${ativo}</strong>.</div>`
+        :`<div class="alert alert-warn">Nenhum prospect com apresentação deste ativo.</div>`;
+    } else if(isPc){
+      document.getElementById('bk-preview').innerHTML=`<div class="alert alert-info">Serão registrados envios para <strong>todos os ${this.data.length} prospects</strong>.</div>`;
+    } else {
+      document.getElementById('bk-preview').innerHTML='';
+    }
+  }
+
+  saveBulk(){
+    const tipo=document.getElementById('bk-tipo').value;
+    if(!tipo){alert('Selecione o tipo.');return;}
+    const r={tipo,data:today()};
+    let targets=this.data;
+    if(tipo==='Relatório de Ativo'){
+      r.ativo=document.getElementById('bk-ativo').value;
+      r.tri=document.getElementById('bk-tri').value;
+      r.anoTri=document.getElementById('bk-ano-tri').value;
+      targets=this.data.filter(p=>p.ativos&&p.ativos.some(a=>a.ativo===r.ativo));
+    } else {
+      r.mes=document.getElementById('bk-mes').value;
+      r.ano=document.getElementById('bk-ano').value;
+    }
+    if(!targets.length){alert('Nenhum prospect encontrado para este ativo.');return;}
+    targets.forEach(p=>p.rels.push({...r}));
+    this._save();
+    this.close('m-bulk');
+    alert(`Envio registrado para ${targets.length} prospect(s).`);
+  }
+
+  // ── EXPORT EXCEL ──────────────────────────────────────
+  exportExcel(){
+    const xe=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const hc=v=>`<Cell ss:StyleID="h"><Data ss:Type="String">${xe(v)}</Data></Cell>`;
+    const tc=v=>`<Cell><Data ss:Type="String">${xe(v)}</Data></Cell>`;
+    const nc=v=>`<Cell><Data ss:Type="Number">${Number(v)||0}</Data></Cell>`;
+    const ec=()=>`<Cell><Data ss:Type="String"></Data></Cell>`;
+    const mkRow=cells=>`<Row>${cells.join('')}</Row>`;
+    const mkSheet=(name,headers,dataRows)=>{
+      const rows=[mkRow(headers.map(hc)),...dataRows.map(r=>mkRow(r))].join('');
+      return `<Worksheet ss:Name="${xe(name)}"><Table>${rows}</Table></Worksheet>`;
+    };
+
+    const pBase=p=>[tc(p.nome),tc(p.email||''),tc(p.tel||''),tc(p.resp)];
+
+    const sh1=mkSheet('Prospects',
+      ['Nome','E-mail','Telefone','Responsável','Data Cadastro','Convertido','Nº Ativos Apresentados','Nº Captações','Volume Total Captado','Resumo'],
+      this.data.map(p=>[
+        tc(p.nome),tc(p.email||''),tc(p.tel||''),tc(p.resp),
+        tc(fmtDate(p.dt)),
+        tc(p.caps&&p.caps.length>0?'Sim':'Não'),
+        nc((p.ativos||[]).length),
+        nc((p.caps||[]).length),
+        tc(fmtBRL((p.caps||[]).reduce((s,c)=>s+(c.valor||0),0))),
+        tc(p.resumo||'')
+      ])
+    );
+
+    const atv2=[];
+    this.data.forEach(p=>{
+      if(!p.ativos||!p.ativos.length){
+        atv2.push([...pBase(p),ec(),ec()]);
+      } else {
+        p.ativos.forEach(a=>{atv2.push([...pBase(p),tc(a.ativo),tc(fmtDate(a.data))]);});
+      }
+    });
+    const sh2=mkSheet('Ativos Apresentados',
+      ['Prospect','E-mail','Telefone','Responsável','Ativo Apresentado','Data Apresentação'],atv2);
+
+    const caps3=[];
+    this.data.forEach(p=>{
+      if(!p.caps||!p.caps.length){
+        caps3.push([...pBase(p),ec(),ec(),ec(),ec(),ec(),ec(),ec(),ec(),ec()]);
+      } else {
+        p.caps.forEach(c=>{
+          caps3.push([
+            ...pBase(p),tc(c.ativo),tc(fmtBRL(c.valor)),nc(c.valor||0),tc(c.status),
+            tc(fmtDate(c.dataCap)),tc(c.mec),
+            tc(c.mec==='Conta BTG'?(c.seg||''):''),
+            tc(c.mec==='Conta BTG'?(c.conta||''):''),
+            tc(c.mec==='Conta BTG'?(c.abertura?'Sim':'Não'):''),
+            tc(c.mec==='Fundo Exclusivo'?(c.nomeFundo||''):''),
+            tc(c.mec==='Fundo Exclusivo'?(c.admin||''):'')
+          ]);
+        });
+      }
+    });
+    const sh3=mkSheet('Captações',
+      ['Prospect','E-mail','Telefone','Responsável','Ativo','Valor','Valor Numérico','Status','Data Captação','Mecanismo','Segmento (BTG)','Nº Conta (BTG)','Abertura Solicitada','Nome Fundo Exclusivo','Administrador'],
+      caps3);
+
+    const ns4=[];
+    this.data.forEach(p=>{
+      if(!p.ns||!p.ns.length)return;
+      p.ns.forEach(n=>{ns4.push([...pBase(p),tc(n.ativo),tc(n.just),tc(fmtDate(n.data))]);});
+    });
+    const sh4=ns4.length?mkSheet('Não Seguiram',
+      ['Prospect','E-mail','Telefone','Responsável','Ativo Negado','Justificativa','Data'],ns4):'';
+
+    const rels5=[];
+    this.data.forEach(p=>{
+      if(!p.rels||!p.rels.length)return;
+      p.rels.forEach(r=>{
+        rels5.push([...pBase(p),tc(r.tipo),
+          tc(r.tipo==='Posição Consolidada 051'?`${r.mes||''} / ${r.ano||''}`:`${r.ativo||''} — ${r.tri||''}${r.anoTri?' / '+r.anoTri:''}`),
+          tc(fmtDate(r.data))]);
+      });
+    });
+    const sh5=rels5.length?mkSheet('Relatórios Enviados',
+      ['Prospect','E-mail','Telefone','Responsável','Tipo','Referência','Data Envio'],rels5):'';
+
+    const styles=`<Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="11"/><Interior ss:Color="#134169" ss:Pattern="Solid"/></Style></Styles>`;
+    const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${styles}${sh1}${sh2}${sh3}${sh4}${sh5}</Workbook>`;
+
+    const blob=new Blob([xml],{type:'application/vnd.ms-excel;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='051-CRM-Nao-Clientes.xls';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+  }
+
+  // ── MODAL UTILS ───────────────────────────────────────
+  open(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+  close(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function fmtBRL(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);}
+function fmtK(v){
+  if(v>=1000000)return'R$ '+(v/1000000).toFixed(1).replace('.',',')+'M';
+  if(v>=1000)return'R$ '+(v/1000).toFixed(0)+'K';
+  return fmtBRL(v);
+}
+function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}
+function today(){return new Date().toISOString().split('T')[0];}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function _fbErr(code){
+  return ({
+    'auth/invalid-email':'E-mail inválido.',
+    'auth/user-not-found':'Usuário não encontrado.',
+    'auth/wrong-password':'E-mail ou senha incorretos.',
+    'auth/invalid-credential':'E-mail ou senha incorretos.',
+    'auth/too-many-requests':'Muitas tentativas. Aguarde alguns minutos.',
+    'auth/email-already-in-use':'Este e-mail já possui uma conta.',
+    'auth/weak-password':'Senha fraca — use pelo menos 6 caracteres.',
+    'auth/network-request-failed':'Erro de conexão. Verifique a internet.'
+  }[code])||'Ocorreu um erro. Tente novamente.';
+}
+
+function ico(name,color,size=16){
+  const s=size;
+  const icons={
+    users:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    check:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    dollar:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    briefcase:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+    search:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+    plus:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+    chevron:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+    user:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    mail:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
+    phone:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1.17h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.95a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+    file:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+    excel:`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`
+  };
+  return icons[name]||'';
+}
+
+// ════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════
+const crm = new CRM051();
+
+auth.onAuthStateChanged(user => {
+  document.getElementById('auth-loading').style.display = 'none';
+  if (user) {
+    crm.start(user);
+  } else {
+    crm.stop();
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+});
+</script>
+</body>
+</html>
