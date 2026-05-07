@@ -1628,8 +1628,11 @@ function _fbErr(code){
     'auth/too-many-requests':'Muitas tentativas. Aguarde alguns minutos.',
     'auth/email-already-in-use':'Este e-mail já possui uma conta.',
     'auth/weak-password':'Senha fraca — use pelo menos 6 caracteres.',
-    'auth/network-request-failed':'Erro de conexão. Verifique a internet.'
-  }[code])||'Ocorreu um erro. Tente novamente.';
+    'auth/network-request-failed':'Erro de conexão. Verifique a internet.',
+    'auth/unauthorized-domain':'Domínio não autorizado no Firebase. Contate o administrador.',
+    'auth/operation-not-allowed':'Login por e-mail não está ativado no Firebase.',
+    'auth/configuration-not-found':'Configuração do Firebase não encontrada.'
+  }[code])||`Erro: ${code}`;
 }
 
 function ico(name,color,size=16){
